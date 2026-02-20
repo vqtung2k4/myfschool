@@ -1,9 +1,21 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-class LoginForm extends StatelessWidget {
+import '../../home/parent_homepage.dart';
+import '../../home/teacher_homepage.dart';
+
+class LoginForm extends StatefulWidget {
   const LoginForm({super.key});
 
   @override
+  State<LoginForm> createState() => _LoginFormState();
+}
+
+class _LoginFormState extends State<LoginForm> {
+  final phoneController = TextEditingController();
+  final passwordController = TextEditingController();
+
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
@@ -76,6 +88,7 @@ class LoginForm extends StatelessWidget {
                                 ),
                               ),
                               child: TextField(
+                                controller: phoneController,
                                 decoration: InputDecoration(
                                   hintText: "Phonenumber",
                                   hintStyle: TextStyle(color: Colors.grey),
@@ -91,6 +104,8 @@ class LoginForm extends StatelessWidget {
                                 ),
                               ),
                               child: TextField(
+                                controller: passwordController,
+                                obscureText: true,
                                 decoration: InputDecoration(
                                   hintText: "Password",
                                   hintStyle: TextStyle(color: Colors.grey),
@@ -110,7 +125,7 @@ class LoginForm extends StatelessWidget {
                       SizedBox(
                         width: 200,
                         child: ElevatedButton(
-                          onPressed: () {},
+                          onPressed: login,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.orange[900],
                             padding: const EdgeInsets.symmetric(vertical: 15),
@@ -160,5 +175,44 @@ class LoginForm extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> login() async {
+    try {
+      final phone = phoneController.text.trim();
+      final password = passwordController.text.trim();
+
+      final fakeMail = "$phone@fschool.edu";
+
+      final userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: fakeMail, password: password);
+
+      final uid = userCredential.user!.uid;
+
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
+
+      final role = userDoc['role'];
+
+      if (role == 'parent') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const ParentHomepage()),
+        );
+      }
+
+      if (role == 'teacher') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const TeacherHomepage()),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Login failed: $e")));
+    }
   }
 }
