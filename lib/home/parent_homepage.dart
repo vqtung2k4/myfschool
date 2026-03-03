@@ -1,9 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class ParentHomepage extends StatelessWidget {
+class ParentHomepage extends StatefulWidget {
   const ParentHomepage({super.key});
 
   @override
+  State<ParentHomepage> createState() => _ParentHomepageState();
+}
+
+class _ParentHomepageState extends State<ParentHomepage> {
+  String parentName = "";
+
+  @override
+  void initState() {
+    super.initState();
+    loadUserData();
+  }
+
+  Future<void> loadUserData() async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+
+    final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
+
+    setState(() {
+      parentName = userDoc['name'];
+    });
+  }
+
+@override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -15,8 +43,10 @@ class ParentHomepage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "Hello, Parent 👋",
+             Text(
+              parentName.isEmpty
+                ? "Hello "
+                : "Hello, $parentName",
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 30),
@@ -103,6 +133,6 @@ class ParentHomepage extends StatelessWidget {
         ),
       ),
     );
-  }
+  }  
 }
 
