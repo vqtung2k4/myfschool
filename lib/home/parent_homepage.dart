@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 
 class ParentHomepage extends StatefulWidget {
   const ParentHomepage({super.key});
@@ -22,72 +22,103 @@ class _ParentHomepageState extends State<ParentHomepage> {
     final uid = FirebaseAuth.instance.currentUser!.uid;
 
     final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .get();
+        .collection('users')
+        .doc(uid)
+        .get();
 
     setState(() {
       parentName = userDoc['name'];
     });
   }
 
-@override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Parent Home"),
-        centerTitle: true,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
+      body: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            colors: [
+              Colors.orange[900]!,
+              Colors.orange[800]!,
+              Colors.orange[400]!,
+            ],
+          ),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-             Text(
-              parentName.isEmpty
-                ? "Hello "
-                : "Hello, $parentName",
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 80),
 
-            Expanded(
-              child: GridView.count(
-                crossAxisCount: 2,
-                mainAxisSpacing: 20,
-                crossAxisSpacing: 20,
+            // 🔥 Header
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-
-                  _buildMenuCard(
-                    context,
-                    icon: Icons.check_circle_outline,
-                    title: "Attendance",
-                    onTap: () {
-                      // Navigate to attendance page later
-                    },
+                  Text(
+                    parentName.isEmpty ? "Hello 👋" : "Hello, $parentName 👋",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-
-                  _buildMenuCard(
-                    context,
-                    icon: Icons.assignment_outlined,
-                    title: "Assignment",
-                    onTap: () {},
-                  ),
-
-                  _buildMenuCard(
-                    context,
-                    icon: Icons.poll_outlined,
-                    title: "Survey",
-                    onTap: () {},
-                  ),
-
-                  _buildMenuCard(
-                    context,
-                    icon: Icons.calendar_today_outlined,
-                    title: "Schedule",
-                    onTap: () {},
+                  const SizedBox(height: 10),
+                  const Text(
+                    "Welcome back",
+                    style: TextStyle(color: Colors.white, fontSize: 18),
                   ),
                 ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // 🔥 White Container
+            Expanded(
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(60),
+                    topRight: Radius.circular(60),
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(25),
+                  child: GridView.count(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 25,
+                    crossAxisSpacing: 25,
+                    children: [
+                      _buildMenuCard(
+                        icon: Icons.check_circle_outline,
+                        title: "Attendance",
+                        onTap: () {},
+                      ),
+
+                      _buildMenuCard(
+                        icon: Icons.assignment_outlined,
+                        title: "Assignment",
+                        onTap: () {},
+                      ),
+
+                      _buildMenuCard(
+                        icon: Icons.poll_outlined,
+                        title: "Survey",
+                        onTap: () {},
+                      ),
+
+                      _buildMenuCard(
+                        icon: Icons.calendar_today_outlined,
+                        title: "Schedule",
+                        onTap: () {},
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ],
@@ -96,24 +127,22 @@ class _ParentHomepageState extends State<ParentHomepage> {
     );
   }
 
-  Widget _buildMenuCard(
-      BuildContext context, {
-        required IconData icon,
-        required String title,
-        required VoidCallback onTap,
-      }) {
+  Widget _buildMenuCard({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 120,
         decoration: BoxDecoration(
-          color: Colors.orange[50],
+          color: Colors.white,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.shade200,
-              blurRadius: 10,
-              offset: const Offset(0, 5),
+              color: Colors.orange.withOpacity(0.15),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
@@ -121,18 +150,14 @@ class _ParentHomepageState extends State<ParentHomepage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, size: 40, color: Colors.orange[900]),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             Text(
               title,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
             ),
           ],
         ),
       ),
     );
-  }  
+  }
 }
-
