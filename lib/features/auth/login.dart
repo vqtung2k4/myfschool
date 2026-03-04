@@ -184,31 +184,8 @@ class _LoginFormState extends State<LoginForm> {
 
       final fakeMail = "$phone@fschool.edu";
 
-      final userCredential = await FirebaseAuth.instance
+      await FirebaseAuth.instance
           .signInWithEmailAndPassword(email: fakeMail, password: password);
-
-      final uid = userCredential.user!.uid;
-
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .get();
-
-      final role = userDoc['role'];
-
-      if (role == 'parent') {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const ParentHomepage()),
-        );
-      }
-
-      if (role == 'teacher') {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const TeacherHomepage()),
-        );
-      }
     } catch (e) {
       ScaffoldMessenger.of(
         context,

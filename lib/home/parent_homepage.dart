@@ -11,6 +11,7 @@ class ParentHomepage extends StatefulWidget {
 
 class _ParentHomepageState extends State<ParentHomepage> {
   String parentName = "";
+  String studentName = "";
 
   @override
   void initState() {
@@ -25,9 +26,16 @@ class _ParentHomepageState extends State<ParentHomepage> {
         .collection('users')
         .doc(uid)
         .get();
+    final studentId = userDoc['childId'];
+
+    final studentDoc = await FirebaseFirestore.instance
+        .collection("students")
+        .doc(studentId)
+        .get();
 
     setState(() {
       parentName = userDoc['name'];
+      studentName = studentDoc['name'];
     });
   }
 
@@ -49,26 +57,43 @@ class _ParentHomepageState extends State<ParentHomepage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 80),
+            const SizedBox(height: 20),
 
             // 🔥 Header
             Padding(
               padding: const EdgeInsets.all(20),
-              child: Column(
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    parentName.isEmpty ? "Hello 👋" : "Hello, $parentName 👋",
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          parentName.isEmpty
+                              ? "Hello 👋"
+                              : "Hello, $parentName 👋",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          studentName.isEmpty
+                              ? "Loading child..."
+                              : "$studentName's Dashboard",
+                          style: TextStyle(color: Colors.white, fontSize: 18),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  const Text(
-                    "Welcome back",
-                    style: TextStyle(color: Colors.white, fontSize: 18),
+                  IconButton(
+                    icon: const Icon(Icons.logout),
+                    onPressed: () async {
+                      await FirebaseAuth.instance.signOut();
+                    },
                   ),
                 ],
               ),
