@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../pages/attendance_page.dart';
 
 class ParentHomepage extends StatefulWidget {
   const ParentHomepage({super.key});
@@ -121,7 +122,14 @@ class _ParentHomepageState extends State<ParentHomepage> {
                       _buildMenuCard(
                         icon: Icons.check_circle_outline,
                         title: "Attendance",
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const AttendancePage(),
+                            )
+                          );
+                        },
                       ),
 
                       _buildMenuCard(
