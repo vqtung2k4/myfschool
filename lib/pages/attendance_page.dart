@@ -2,6 +2,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class AttendancePage extends StatefulWidget {
   const AttendancePage({super.key});
@@ -61,6 +62,8 @@ class _AttendancePageState extends State<AttendancePage> {
                 final data = records[index];
                 final date = data['date'];
                 final status = data['status'];
+
+                final formattedDate = DateFormat('MMM dd, yyyy').format(date.toDate());
                 
                 return ListTile(
                   leading: Icon(
@@ -68,7 +71,7 @@ class _AttendancePageState extends State<AttendancePage> {
                     color: status == true ? Colors.green : Colors.red,
                   ),
                   
-                  title: Text(date.toDate().toString()),
+                  title: Text(formattedDate),
                   subtitle: Text(status == true ? "Present" : "Absent"),
                 );
               },
