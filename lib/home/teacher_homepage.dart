@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:myfschool/pages/teacher_attendance_page.dart';
 
 class TeacherHomepage extends StatefulWidget {
   const TeacherHomepage({super.key});
@@ -114,7 +115,12 @@ class _TeacherHomepageState extends State<TeacherHomepage> {
                         icon: Icons.how_to_reg,
                         title: "Mark Attendance",
                         onTap: () {
-                          // TODO: Navigate to Mark Attendance Page
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const TeacherAttendancePage(),
+                            ),
+                          );
                         },
                       ),
                       _buildMenuCard(
