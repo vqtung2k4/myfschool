@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:myfschool/pages/teacher_assignments_page.dart';
 import 'package:myfschool/pages/teacher_attendance_page.dart';
 
 class TeacherHomepage extends StatefulWidget {
@@ -126,7 +127,14 @@ class _TeacherHomepageState extends State<TeacherHomepage> {
                       _buildMenuCard(
                         icon: Icons.assignment_outlined,
                         title: "Assignments",
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const CreateAssignmentPage(),
+                            ),
+                          );
+                        },
                       ),
                       _buildMenuCard(
                         icon: Icons.event_note,

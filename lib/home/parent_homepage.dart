@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:myfschool/pages/assignments_page.dart';
 
 import '../pages/attendance_page.dart';
 import '../pages/schedule_page.dart';
@@ -137,7 +138,14 @@ class _ParentHomepageState extends State<ParentHomepage> {
                       _buildMenuCard(
                         icon: Icons.assignment_outlined,
                         title: "Assignment",
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const AssignmentPage(),
+                            ),
+                          );
+                        },
                       ),
 
                       _buildMenuCard(
