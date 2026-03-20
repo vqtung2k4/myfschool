@@ -89,15 +89,24 @@ class _SchedulePageState extends State<SchedulePage> {
               ),
               child: Column(
                 children: [
-                  Align(
-                    alignment: Alignment.topRight,
-                    child: TextButton.icon(
-                      onPressed: () {
-                        setState(() => currentViewDate = DateTime.now());
-                        loadSchedule();
-                      },
-                      icon: const Icon(Icons.today, color: Colors.white, size: 18),
-                      label: const Text("Today", style: TextStyle(color: Colors.white)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back, color: Colors.white),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                        TextButton.icon(
+                          onPressed: () {
+                            setState(() => currentViewDate = DateTime.now());
+                            loadSchedule();
+                          },
+                          icon: const Icon(Icons.today, color: Colors.white, size: 18),
+                          label: const Text("Today", style: TextStyle(color: Colors.white)),
+                        ),
+                      ],
                     ),
                   ),
                   Row(
