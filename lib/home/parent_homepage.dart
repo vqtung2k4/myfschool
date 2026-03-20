@@ -1,9 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:myfschool/pages/schedule_page.dart';
 
 import '../pages/attendance_page.dart';
+import '../pages/schedule_page.dart';
 
 class ParentHomepage extends StatefulWidget {
   const ParentHomepage({super.key});
@@ -137,14 +137,7 @@ class _ParentHomepageState extends State<ParentHomepage> {
                       _buildMenuCard(
                         icon: Icons.assignment_outlined,
                         title: "Assignment",
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const SchedulePage(),
-                            ),
-                          );
-                        },
+                        onTap: () {},
                       ),
 
                       _buildMenuCard(
@@ -156,7 +149,14 @@ class _ParentHomepageState extends State<ParentHomepage> {
                       _buildMenuCard(
                         icon: Icons.calendar_today_outlined,
                         title: "Schedule",
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const SchedulePage(),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
