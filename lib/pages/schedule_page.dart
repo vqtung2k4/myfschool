@@ -20,7 +20,18 @@ class _SchedulePageState extends State<SchedulePage> {
   @override
   void initState() {
     super.initState();
+    // Normalize today's date
+    currentViewDate = _normalize(DateTime.now());
     loadSchedule();
+  }
+
+  DateTime _getStartOfWeek(DateTime date) {
+    // Returns the Monday of the week containing the given date
+    return DateTime(date.year, date.month, date.day).subtract(Duration(days: date.weekday - 1));
+  }
+
+  DateTime _normalize(DateTime date) {
+    return DateTime(date.year, date.month, date.day);
   }
 
   Future<void> loadSchedule() async {
@@ -28,52 +39,70 @@ class _SchedulePageState extends State<SchedulePage> {
     try {
       final uid = FirebaseAuth.instance.currentUser!.uid;
 
+      // 1. Get Student ID
       final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-      final studentId = userDoc['childId'];
+      final studentId = userDoc.data()?['childId'];
 
+      if (studentId == null) throw "No childId found for user";
+
+      // 2. Get Class ID from Student document
       final studentDoc = await FirebaseFirestore.instance.collection('students').doc(studentId).get();
-      final classId = studentDoc['class'] ?? studentDoc['classId'];
+      final studentData = studentDoc.data();
+      final classId = studentData?['class'] ?? studentData?['classId'] ?? studentData?['className'];
 
-      final weekQuery = await FirebaseFirestore.instance
+      if (classId == null) throw "No class found for student $studentId";
+
+      // 3. Find the Monday of the week we are currently viewing
+      final targetMonday = _getStartOfWeek(currentViewDate);
+      debugPrint("DEBUG: Searching for schedule for Class: $classId, Week starting: $targetMonday");
+
+      // 4. Fetch all weeks for this class
+      final weeksQuery = await FirebaseFirestore.instance
           .collection('schedule')
-          .doc(classId)
+          .doc(classId.toString())
           .collection('weeks')
-          .where('startDate', isLessThanOrEqualTo: currentViewDate)
-          .orderBy('startDate', descending: true)
-          .limit(1)
           .get();
 
-      if (weekQuery.docs.isNotEmpty) {
-        final data = weekQuery.docs.first.data();
-        DateTime endDate = (data['endDate'] as Timestamp).toDate();
+      DocumentSnapshot? targetWeek;
+      for (var doc in weeksQuery.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        if (!data.containsKey('startDate')) continue;
 
-        if (currentViewDate.isBefore(endDate.add(const Duration(days: 1)))) {
-          setState(() {
-            schedule = data;
-            isLoading = false;
-          });
-        } else {
-          setState(() { schedule = null; isLoading = false; });
+        final start = _normalize((data['startDate'] as Timestamp).toDate());
+        
+        // If the Monday of this document matches the Monday of our view date, it's the right week
+        if (start.isAtSameMomentAs(targetMonday)) {
+          targetWeek = doc;
+          debugPrint("DEBUG: Found matching week: ${doc.id}");
+          break;
         }
-      } else {
-        setState(() { schedule = null; isLoading = false; });
       }
+
+      setState(() {
+        schedule = targetWeek?.data() as Map<String, dynamic>?;
+        isLoading = false;
+      });
     } catch (e) {
-      debugPrint("Error: $e");
-      setState(() => isLoading = false);
+      debugPrint("Schedule Load Error: $e");
+      setState(() {
+        schedule = null;
+        isLoading = false;
+      });
     }
   }
 
-  String _formatDate(dynamic timestamp) {
-    if (timestamp == null) return "";
-    DateTime date = (timestamp as Timestamp).toDate();
+  String _formatDate(DateTime date) {
     return DateFormat('dd/MM/yyyy').format(date);
   }
 
   @override
   Widget build(BuildContext context) {
+    final weekStart = _getStartOfWeek(currentViewDate);
+    final weekEnd = weekStart.add(const Duration(days: 4));
+
     return DefaultTabController(
       length: weekDays.length,
+      initialIndex: (currentViewDate.weekday > 5) ? 0 : currentViewDate.weekday - 1,
       child: Scaffold(
         backgroundColor: Colors.white,
         body: Column(
@@ -100,7 +129,7 @@ class _SchedulePageState extends State<SchedulePage> {
                         ),
                         TextButton.icon(
                           onPressed: () {
-                            setState(() => currentViewDate = DateTime.now());
+                            setState(() => currentViewDate = _normalize(DateTime.now()));
                             loadSchedule();
                           },
                           icon: const Icon(Icons.today, color: Colors.white, size: 18),
@@ -123,11 +152,10 @@ class _SchedulePageState extends State<SchedulePage> {
                         children: [
                           const Text("Weekly Schedule",
                               style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                          if (schedule != null)
-                            Text(
-                              "${_formatDate(schedule!['startDate'])} - ${_formatDate(schedule!['endDate'])}",
-                              style: const TextStyle(color: Colors.white70, fontSize: 13),
-                            ),
+                          Text(
+                            "${_formatDate(weekStart)} - ${_formatDate(weekEnd)}",
+                            style: const TextStyle(color: Colors.white70, fontSize: 13),
+                          ),
                         ],
                       ),
                       IconButton(
@@ -184,21 +212,26 @@ class _SchedulePageState extends State<SchedulePage> {
         children: [
           Icon(Icons.event_busy, size: 60, color: Colors.grey[300]),
           const SizedBox(height: 15),
-          const Text("No schedule listed for this week", style: TextStyle(color: Colors.grey)),
+          const Text("No schedule found for this week", style: TextStyle(color: Colors.grey)),
         ],
       ),
     );
   }
 
   Widget _buildDayContent(String day) {
-    final List subjects = schedule![day] ?? [];
+    if (schedule == null) return const SizedBox();
+    
+    final List subjects = (schedule![day.toLowerCase()] ?? schedule![day] ?? []) as List;
 
     if (subjects.isEmpty) {
-      return const Center(child: Text("No classes scheduled for this day"));
+      return Center(
+        child: Text("No classes scheduled for ${day.substring(0, 1).toUpperCase()}${day.substring(1)}", 
+          style: const TextStyle(color: Colors.grey)),
+      );
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
       itemCount: subjects.length,
       itemBuilder: (context, index) {
         return Card(
