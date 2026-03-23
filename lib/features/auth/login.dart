@@ -141,28 +141,6 @@ class _LoginFormState extends State<LoginForm> {
                         ),
                       ),
                       SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            "Don't have an account?",
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                          SizedBox(width: 5),
-                          // GestureDetector(
-                          //   onTap: () {
-                          //     Navigator.push(context, MaterialPageRoute(builder: (context) => SignupForm()));
-                          //   },
-                          //   child: Text(
-                          //     "Signup",
-                          //     style: TextStyle(
-                          //       color: Colors.orange[900],
-                          //       fontWeight: FontWeight.w600,
-                          //     ),
-                          //   ),
-                          // ),
-                        ],
-                      ),
                     ],
                   ),
                 ),
