@@ -34,29 +34,31 @@ class _SchedulePageState extends State<SchedulePage> {
     return DateTime(date.year, date.month, date.day);
   }
 
+  // 1. Add a variable to store active subjects
+  List<String> activeSubjects = [];
+
   Future<void> loadSchedule() async {
     setState(() => isLoading = true);
     try {
-      final uid = FirebaseAuth.instance.currentUser!.uid;
+      // --- STEP A: Fetch Active Subjects First ---
+      final subjectsSnap = await FirebaseFirestore.instance
+          .collection('subjects')
+          .where('active', isEqualTo: true)
+          .get();
 
-      // 1. Get Student ID
+      // Store only the IDs (names) of active subjects
+      activeSubjects = subjectsSnap.docs.map((doc) => doc.id).toList();
+
+      // --- STEP B: Your existing Schedule Loading Logic ---
+      final uid = FirebaseAuth.instance.currentUser!.uid;
       final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
       final studentId = userDoc.data()?['childId'];
 
-      if (studentId == null) throw "No childId found for user";
-
-      // 2. Get Class ID from Student document
       final studentDoc = await FirebaseFirestore.instance.collection('students').doc(studentId).get();
-      final studentData = studentDoc.data();
-      final classId = studentData?['class'] ?? studentData?['classId'] ?? studentData?['className'];
+      final classId = studentDoc.data()?['class'] ?? studentDoc.data()?['classId'];
 
-      if (classId == null) throw "No class found for student $studentId";
-
-      // 3. Find the Monday of the week we are currently viewing
       final targetMonday = _getStartOfWeek(currentViewDate);
-      debugPrint("DEBUG: Searching for schedule for Class: $classId, Week starting: $targetMonday");
 
-      // 4. Fetch all weeks for this class
       final weeksQuery = await FirebaseFirestore.instance
           .collection('schedule')
           .doc(classId.toString())
@@ -66,14 +68,9 @@ class _SchedulePageState extends State<SchedulePage> {
       DocumentSnapshot? targetWeek;
       for (var doc in weeksQuery.docs) {
         final data = doc.data() as Map<String, dynamic>;
-        if (!data.containsKey('startDate')) continue;
-
         final start = _normalize((data['startDate'] as Timestamp).toDate());
-        
-        // If the Monday of this document matches the Monday of our view date, it's the right week
         if (start.isAtSameMomentAs(targetMonday)) {
           targetWeek = doc;
-          debugPrint("DEBUG: Found matching week: ${doc.id}");
           break;
         }
       }
@@ -83,11 +80,8 @@ class _SchedulePageState extends State<SchedulePage> {
         isLoading = false;
       });
     } catch (e) {
-      debugPrint("Schedule Load Error: $e");
-      setState(() {
-        schedule = null;
-        isLoading = false;
-      });
+      debugPrint("Error: $e");
+      setState(() => isLoading = false);
     }
   }
 
@@ -220,28 +214,27 @@ class _SchedulePageState extends State<SchedulePage> {
 
   Widget _buildDayContent(String day) {
     if (schedule == null) return const SizedBox();
-    
-    final List subjects = (schedule![day.toLowerCase()] ?? schedule![day] ?? []) as List;
 
-    if (subjects.isEmpty) {
+    // Get raw list from Firestore (e.g., ["Math", "Science"])
+    final List rawSubjects = (schedule![day.toLowerCase()] ?? []) as List;
+
+    // --- FILTER LOGIC ---
+    // Only keep subjects that exist in our 'activeSubjects' list
+    final List filteredSubjects = rawSubjects.where((s) => activeSubjects.contains(s.toString())).toList();
+
+    if (filteredSubjects.isEmpty) {
       return Center(
-        child: Text("No classes scheduled for ${day.substring(0, 1).toUpperCase()}${day.substring(1)}", 
-          style: const TextStyle(color: Colors.grey)),
+        child: Text("No active classes scheduled for ${day.substring(0, 1).toUpperCase()}${day.substring(1)}",
+            style: const TextStyle(color: Colors.grey)),
       );
     }
 
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-      itemCount: subjects.length,
+      itemCount: filteredSubjects.length,
       itemBuilder: (context, index) {
         return Card(
-          elevation: 0,
-          margin: const EdgeInsets.only(bottom: 12),
-          color: Colors.grey[50],
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
-            side: BorderSide(color: Colors.grey[200]!),
-          ),
+          // ... your existing Card UI ...
           child: ListTile(
             leading: Container(
               padding: const EdgeInsets.all(8),
@@ -252,7 +245,7 @@ class _SchedulePageState extends State<SchedulePage> {
               child: const Icon(Icons.menu_book_rounded, color: Colors.orange),
             ),
             title: Text(
-              subjects[index].toString(),
+              filteredSubjects[index].toString(),
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             subtitle: const Text("Duration: 45 mins"),
