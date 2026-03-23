@@ -150,6 +150,19 @@ class _ParentHomepageState extends State<ParentHomepage> {
                       ),
 
                       _buildMenuCard(
+                        icon: Icons.assignment_outlined,
+                        title: "Assignment",
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const AssignmentPage(),
+                            ),
+                          );
+                        },
+                      ),
+
+                      _buildMenuCard(
                         icon: Icons.poll_outlined,
                         title: "Result",
                         onTap: () {
