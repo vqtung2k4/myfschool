@@ -10,7 +10,13 @@ import '../pages/schedule_page.dart';
 
 class ParentHomepage extends StatefulWidget {
   final String selectedChildId;
-  const ParentHomepage({super.key, required this.selectedChildId});
+  final VoidCallback onBackToSelection;
+
+  const ParentHomepage({
+    super.key,
+    required this.selectedChildId,
+    required this.onBackToSelection,
+  });
 
   @override
   State<ParentHomepage> createState() => _ParentHomepageState();
@@ -83,6 +89,10 @@ class _ParentHomepageState extends State<ParentHomepage> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: widget.onBackToSelection,
+                  ),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

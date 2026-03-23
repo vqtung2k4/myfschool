@@ -1,11 +1,19 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:myfschool/home/parent_homepage.dart';
 import 'package:myfschool/home/teacher_homepage.dart';
 import 'package:myfschool/pages/child_selection.dart';
 
-class RoleChecker extends StatelessWidget {
+class RoleChecker extends StatefulWidget {
   const RoleChecker({super.key});
+
+  @override
+  State<RoleChecker> createState() => _RoleCheckerState();
+}
+
+class _RoleCheckerState extends State<RoleChecker> {
+  String? selectedChildId;
 
   @override
   Widget build(BuildContext context) {
@@ -45,8 +53,23 @@ class RoleChecker extends StatelessWidget {
         final role = data?['role'];
 
         if (role == 'parent') {
-          // If the user is a parent, they must select a child first
-          return const ChildSelectionPage();
+          if (selectedChildId != null) {
+            return ParentHomepage(
+              selectedChildId: selectedChildId!,
+              onBackToSelection: () {
+                setState(() {
+                  selectedChildId = null;
+                });
+              },
+            );
+          }
+          return ChildSelectionPage(
+            onChildSelected: (id) {
+              setState(() {
+                selectedChildId = id;
+              });
+            },
+          );
         }
         if (role == 'teacher') {
           return const TeacherHomepage();

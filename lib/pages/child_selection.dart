@@ -1,10 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:myfschool/home/parent_homepage.dart';
 
 class ChildSelectionPage extends StatefulWidget {
-  const ChildSelectionPage({super.key});
+  final Function(String) onChildSelected;
+  const ChildSelectionPage({super.key, required this.onChildSelected});
 
   @override
   State<ChildSelectionPage> createState() => _ChildSelectionPageState();
@@ -53,7 +53,6 @@ class _ChildSelectionPageState extends State<ChildSelectionPage> {
                     if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}", style: const TextStyle(color: Colors.white)));
                     if (!snapshot.hasData || !snapshot.data!.exists) return const Center(child: Text("Profile not found", style: TextStyle(color: Colors.white)));
 
-                    // Get the list of IDs
                     final data = snapshot.data!.data() as Map<String, dynamic>?;
                     List<dynamic> childrenIds = data?['childId'] is List ? data!['childId'] : [];
 
@@ -87,13 +86,7 @@ class _ChildSelectionPageState extends State<ChildSelectionPage> {
         final className = snapshot.data?['class'] ?? snapshot.data?['classId'] ?? "";
 
         return GestureDetector(
-          onTap: () {
-            // Navigate to Parent Homepage and PASS the selected child data
-            Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => ParentHomepage(selectedChildId: childId))
-            );
-          },
+          onTap: () => widget.onChildSelected(childId),
           child: Container(
             margin: const EdgeInsets.only(bottom: 20),
             padding: const EdgeInsets.all(20),
