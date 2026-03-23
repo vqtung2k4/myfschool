@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:myfschool/pages/teacher_attendance_page.dart';
+import 'package:myfschool/pages/teacher_forms_page.dart';
 import 'package:myfschool/pages/teacher_result_page.dart';
 
 class TeacherHomepage extends StatefulWidget {
@@ -148,8 +149,15 @@ class _TeacherHomepageState extends State<TeacherHomepage> {
                       ),
                       _buildMenuCard(
                         icon: Icons.people_outline,
-                        title: "Students",
-                        onTap: () {},
+                        title: "Forms",
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => TeacherFormInboxPage(teacherClass: teacherClass),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
