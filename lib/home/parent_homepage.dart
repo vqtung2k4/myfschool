@@ -9,7 +9,8 @@ import '../pages/attendance_page.dart';
 import '../pages/schedule_page.dart';
 
 class ParentHomepage extends StatefulWidget {
-  const ParentHomepage({super.key});
+  final String selectedChildId;
+  const ParentHomepage({super.key, required this.selectedChildId});
 
   @override
   State<ParentHomepage> createState() => _ParentHomepageState();
@@ -18,6 +19,7 @@ class ParentHomepage extends StatefulWidget {
 class _ParentHomepageState extends State<ParentHomepage> {
   String parentName = "";
   String studentName = "";
+  bool isLoading = true;
 
   @override
   void initState() {
@@ -26,23 +28,33 @@ class _ParentHomepageState extends State<ParentHomepage> {
   }
 
   Future<void> loadUserData() async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return;
 
-    final userDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .get();
-    final studentId = userDoc['childId'];
+      // Fetch Parent Data
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
 
-    final studentDoc = await FirebaseFirestore.instance
-        .collection("students")
-        .doc(studentId)
-        .get();
+      // Fetch Selected Child Data
+      final studentDoc = await FirebaseFirestore.instance
+          .collection("students")
+          .doc(widget.selectedChildId)
+          .get();
 
-    setState(() {
-      parentName = userDoc['name'];
-      studentName = studentDoc['name'];
-    });
+      if (mounted) {
+        setState(() {
+          parentName = userDoc.data()?['name'] ?? "Parent";
+          studentName = studentDoc.data()?['name'] ?? "Unknown Student";
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading parent/student data: $e");
+      if (mounted) setState(() => isLoading = false);
+    }
   }
 
   @override
@@ -76,9 +88,7 @@ class _ParentHomepageState extends State<ParentHomepage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          parentName.isEmpty
-                              ? "Hello 👋"
-                              : "Hello, $parentName 👋",
+                          parentName.isEmpty ? "Hello 👋" : "Hello, $parentName 👋",
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 32,
@@ -87,10 +97,10 @@ class _ParentHomepageState extends State<ParentHomepage> {
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          studentName.isEmpty
-                              ? "Loading child..."
+                          isLoading 
+                              ? "Loading child..." 
                               : "$studentName's Dashboard",
-                          style: TextStyle(color: Colors.white, fontSize: 18),
+                          style: const TextStyle(color: Colors.white, fontSize: 18),
                         ),
                       ],
                     ),
@@ -131,7 +141,7 @@ class _ParentHomepageState extends State<ParentHomepage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => const AttendancePage(),
+                              builder: (_) => AttendancePage(studentId: widget.selectedChildId),
                             ),
                           );
                         },
@@ -144,7 +154,7 @@ class _ParentHomepageState extends State<ParentHomepage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => const AssignmentPage(),
+                              builder: (_) => AssignmentPage(studentId: widget.selectedChildId),
                             ),
                           );
                         },
@@ -157,7 +167,7 @@ class _ParentHomepageState extends State<ParentHomepage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => const ParentFormMainPage(),
+                              builder: (_) => ParentFormMainPage(childId: widget.selectedChildId),
                             ),
                           );
                         },
@@ -170,7 +180,7 @@ class _ParentHomepageState extends State<ParentHomepage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => const ResultPage(),
+                              builder: (_) => ResultPage(studentId: widget.selectedChildId),
                             ),
                           );
                         },
@@ -183,7 +193,7 @@ class _ParentHomepageState extends State<ParentHomepage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => const SchedulePage(),
+                              builder: (_) => SchedulePage(studentId: widget.selectedChildId),
                             ),
                           );
                         },

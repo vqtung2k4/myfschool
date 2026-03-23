@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:myfschool/home/parent_homepage.dart';
 import 'package:myfschool/home/teacher_homepage.dart';
+import 'package:myfschool/pages/child_selection.dart';
 
 class RoleChecker extends StatelessWidget {
   const RoleChecker({super.key});
@@ -45,7 +45,8 @@ class RoleChecker extends StatelessWidget {
         final role = data?['role'];
 
         if (role == 'parent') {
-          return const ParentHomepage();
+          // If the user is a parent, they must select a child first
+          return const ChildSelectionPage();
         }
         if (role == 'teacher') {
           return const TeacherHomepage();

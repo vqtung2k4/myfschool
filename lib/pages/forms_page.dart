@@ -1,16 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class ParentFormMainPage extends StatefulWidget {
-  const ParentFormMainPage({super.key});
+  final String childId;
+  const ParentFormMainPage({super.key, required this.childId});
 
   @override
   State<ParentFormMainPage> createState() => _ParentFormMainPageState();
 }
 
 class _ParentFormMainPageState extends State<ParentFormMainPage> {
-  String? childId;
   String? classId;
   bool isLoading = true;
 
@@ -26,21 +25,17 @@ class _ParentFormMainPageState extends State<ParentFormMainPage> {
   }
 
   Future<void> _loadUserContext() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid != null) {
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-      final cid = userDoc.data()?['childId'];
-
-      if (cid != null) {
-        final studentDoc = await FirebaseFirestore.instance.collection('students').doc(cid).get();
-        if (mounted) {
-          setState(() {
-            childId = cid;
-            classId = studentDoc.data()?['class'] ?? studentDoc.data()?['classId'];
-            isLoading = false;
-          });
-        }
+    try {
+      final studentDoc = await FirebaseFirestore.instance.collection('students').doc(widget.childId).get();
+      if (mounted) {
+        setState(() {
+          classId = studentDoc.data()?['class'] ?? studentDoc.data()?['classId'];
+          isLoading = false;
+        });
       }
+    } catch (e) {
+      debugPrint("Error loading student context: $e");
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
@@ -52,7 +47,6 @@ class _ParentFormMainPageState extends State<ParentFormMainPage> {
         backgroundColor: Colors.white,
         body: Column(
           children: [
-            // --- Shared Gradient Header ---
             Container(
               padding: const EdgeInsets.only(top: 50),
               decoration: const BoxDecoration(
@@ -68,10 +62,7 @@ class _ParentFormMainPageState extends State<ParentFormMainPage> {
                       ),
                       const Expanded(
                         child: Center(
-                          child: Text(
-                            "Requests & Forms",
-                            style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
-                          ),
+                          child: Text("Requests & Forms", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
                         ),
                       ),
                       const SizedBox(width: 48),
@@ -85,7 +76,7 @@ class _ParentFormMainPageState extends State<ParentFormMainPage> {
                     unselectedLabelColor: Colors.white70,
                     tabs: [
                       Tab(text: "HISTORY", icon: Icon(Icons.history)),
-                      Tab(text: "NEW FORM", icon: Icon(Icons.note_add_rounded)), // Fixed missing icon
+                      Tab(text: "NEW FORM", icon: Icon(Icons.note_add_rounded)),
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -93,7 +84,6 @@ class _ParentFormMainPageState extends State<ParentFormMainPage> {
               ),
             ),
 
-            // --- Tab Views ---
             Expanded(
               child: Container(
                 transform: Matrix4.translationValues(0, -20, 0),
@@ -117,28 +107,24 @@ class _ParentFormMainPageState extends State<ParentFormMainPage> {
     );
   }
 
-  // --- TAB 1: HISTORY ---
   Widget _buildHistoryTab() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('forms')
-          .where('childId', isEqualTo: childId)
+          .where('childId', isEqualTo: widget.childId)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
         if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
-        final List<QueryDocumentSnapshot> docs = snapshot.data!.docs;
+        final docs = snapshot.data!.docs;
         if (docs.isEmpty) return const Center(child: Text("No requests sent yet."));
 
-        // Sort locally to avoid index requirement error
         docs.sort((a, b) {
-          final aData = a.data() as Map<String, dynamic>;
-          final bData = b.data() as Map<String, dynamic>;
-          final aDate = aData['createdDate'] as Timestamp?;
-          final bDate = bData['createdDate'] as Timestamp?;
+          final aDate = (a.data() as Map<String, dynamic>)['createdDate'] as Timestamp?;
+          final bDate = (b.data() as Map<String, dynamic>)['createdDate'] as Timestamp?;
           if (aDate == null || bDate == null) return 0;
-          return bDate.compareTo(aDate); // Newest first
+          return bDate.compareTo(aDate);
         });
 
         return ListView.builder(
@@ -154,7 +140,6 @@ class _ParentFormMainPageState extends State<ParentFormMainPage> {
     );
   }
 
-  // --- TAB 2: SUBMIT NEW ---
   Widget _buildSubmitTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(25),
@@ -195,8 +180,6 @@ class _ParentFormMainPageState extends State<ParentFormMainPage> {
     );
   }
 
-  // --- HELPER METHODS ---
-
   Widget _buildHistoryCard(Map<String, dynamic> data, String status) {
     Color statusColor = status == "Accepted" ? Colors.green : (status == "Rejected" ? Colors.red : Colors.orange);
     return Card(
@@ -218,7 +201,7 @@ class _ParentFormMainPageState extends State<ParentFormMainPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(data['content'] ?? "", style: const TextStyle(color: Colors.black87)),
-                if (data['teacherNote'].toString().isNotEmpty) ...[
+                if (data['teacherNote'] != null && data['teacherNote'].toString().isNotEmpty) ...[
                   const Divider(height: 30),
                   Text("Teacher Note:", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange[900])),
                   const SizedBox(height: 5),
@@ -268,7 +251,7 @@ class _ParentFormMainPageState extends State<ParentFormMainPage> {
     setState(() => _isSending = true);
     try {
       await FirebaseFirestore.instance.collection('forms').add({
-        'childId': childId,
+        'childId': widget.childId,
         'classId': classId,
         'type': _selectedType,
         'header': _headerController.text.trim(),
