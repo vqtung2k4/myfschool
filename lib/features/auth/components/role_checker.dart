@@ -11,18 +11,38 @@ class RoleChecker extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
 
-    return FutureBuilder(
+    if (user == null) {
+      return const Scaffold(
+        body: Center(child: Text("Not authenticated. Please log in again.")),
+      );
+    }
+
+    return FutureBuilder<DocumentSnapshot>(
       future: FirebaseFirestore.instance
           .collection("users")
-          .doc(user!.uid)
+          .doc(user.uid)
           .get(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+            body: Center(child: CircularProgressIndicator(color: Colors.orange)),
           );
         }
-        final role = snapshot.data!['role'];
+
+        if (snapshot.hasError) {
+          return Scaffold(
+            body: Center(child: Text("Error: ${snapshot.error}")),
+          );
+        }
+
+        if (!snapshot.hasData || !snapshot.data!.exists) {
+          return const Scaffold(
+            body: Center(child: Text("User profile not found in database.")),
+          );
+        }
+
+        final data = snapshot.data!.data() as Map<String, dynamic>?;
+        final role = data?['role'];
 
         if (role == 'parent') {
           return const ParentHomepage();
@@ -31,7 +51,9 @@ class RoleChecker extends StatelessWidget {
           return const TeacherHomepage();
         }
 
-        return const Scaffold(body: Center(child: Text("Unknown role")));
+        return const Scaffold(
+          body: Center(child: Text("Unknown user role assigned.")),
+        );
       },
     );
   }

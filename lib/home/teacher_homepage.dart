@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:myfschool/pages/teacher_assignments_page.dart';
 import 'package:myfschool/pages/teacher_attendance_page.dart';
+import 'package:myfschool/pages/teacher_result_page.dart';
 
 class TeacherHomepage extends StatefulWidget {
   const TeacherHomepage({super.key});
@@ -13,6 +13,7 @@ class TeacherHomepage extends StatefulWidget {
 
 class _TeacherHomepageState extends State<TeacherHomepage> {
   String teacherName = "";
+  String teacherClass = ""; // Added to store teacher's class
 
   @override
   void initState() {
@@ -29,9 +30,12 @@ class _TeacherHomepageState extends State<TeacherHomepage> {
           .doc(user.uid)
           .get();
 
-      setState(() {
-        teacherName = doc['name'] ?? "";
-      });
+      if (doc.exists && mounted) {
+        setState(() {
+          teacherName = doc.data()?['name'] ?? "";
+          teacherClass = doc.data()?['class'] ?? ""; // Fetch class ID
+        });
+      }
     }
   }
 
@@ -127,19 +131,20 @@ class _TeacherHomepageState extends State<TeacherHomepage> {
                       _buildMenuCard(
                         icon: Icons.assignment_outlined,
                         title: "Assignments",
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const CreateAssignmentPage(),
-                            ),
-                          );
-                        },
+                        onTap: () {},
                       ),
                       _buildMenuCard(
                         icon: Icons.event_note,
                         title: "Result",
-                        onTap: () {},
+                        onTap: () {
+                          // Pass the fetched teacherClass here
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => TeacherScoreEntryPage(teacherClass: teacherClass),
+                            ),
+                          );
+                        },
                       ),
                       _buildMenuCard(
                         icon: Icons.people_outline,

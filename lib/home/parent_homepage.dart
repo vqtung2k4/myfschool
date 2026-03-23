@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:myfschool/pages/assignments_page.dart';
+import 'package:myfschool/pages/result_page.dart';
 
 import '../pages/attendance_page.dart';
 import '../pages/schedule_page.dart';
@@ -94,7 +94,7 @@ class _ParentHomepageState extends State<ParentHomepage> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.logout),
+                    icon: const Icon(Icons.logout, color: Colors.white,),
                     onPressed: () async {
                       await FirebaseAuth.instance.signOut();
                     },
@@ -138,20 +138,20 @@ class _ParentHomepageState extends State<ParentHomepage> {
                       _buildMenuCard(
                         icon: Icons.assignment_outlined,
                         title: "Assignment",
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const AssignmentPage(),
-                            ),
-                          );
-                        },
+                        onTap: () {},
                       ),
 
                       _buildMenuCard(
                         icon: Icons.poll_outlined,
-                        title: "Survey",
-                        onTap: () {},
+                        title: "Result",
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ResultPage(),
+                            ),
+                          );
+                        },
                       ),
 
                       _buildMenuCard(
