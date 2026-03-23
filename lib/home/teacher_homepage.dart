@@ -138,7 +138,7 @@ class _TeacherHomepageState extends State<TeacherHomepage> {
                       ),
                       _buildMenuCard(
                         icon: Icons.event_note,
-                        title: "Schedule",
+                        title: "Result",
                         onTap: () {},
                       ),
                       _buildMenuCard(
