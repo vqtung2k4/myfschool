@@ -30,8 +30,8 @@ class _LoginFormState extends State<LoginForm> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            SizedBox(height: 80),
-            Padding(
+            const SizedBox(height: 80),
+            const Padding(
               padding: EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -48,10 +48,10 @@ class _LoginFormState extends State<LoginForm> {
                 ],
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Expanded(
               child: Container(
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(60),
@@ -59,15 +59,15 @@ class _LoginFormState extends State<LoginForm> {
                   ),
                 ),
                 child: Padding(
-                  padding: EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(20),
                   child: Column(
                     children: <Widget>[
-                      SizedBox(height: 60),
+                      const SizedBox(height: 60),
                       Container(
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(10),
-                          boxShadow: [
+                          boxShadow: const [
                             BoxShadow(
                               color: Color.fromRGBO(255, 95, 27, .3),
                               blurRadius: 20,
@@ -78,7 +78,7 @@ class _LoginFormState extends State<LoginForm> {
                         child: Column(
                           children: <Widget>[
                             Container(
-                              padding: EdgeInsets.all(10),
+                              padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
                                 border: Border(
                                   bottom: BorderSide(color: Colors.grey[200]!),
@@ -86,7 +86,7 @@ class _LoginFormState extends State<LoginForm> {
                               ),
                               child: TextField(
                                 controller: phoneController,
-                                decoration: InputDecoration(
+                                decoration: const InputDecoration(
                                   hintText: "Phonenumber",
                                   hintStyle: TextStyle(color: Colors.grey),
                                   border: InputBorder.none,
@@ -94,8 +94,8 @@ class _LoginFormState extends State<LoginForm> {
                               ),
                             ),
                             Container(
-                              padding: EdgeInsets.all(10),
-                              decoration: BoxDecoration(
+                              padding: const EdgeInsets.all(10),
+                              decoration: const BoxDecoration(
                                 border: Border(
                                   bottom: BorderSide(color: Colors.grey),
                                 ),
@@ -103,7 +103,7 @@ class _LoginFormState extends State<LoginForm> {
                               child: TextField(
                                 controller: passwordController,
                                 obscureText: true,
-                                decoration: InputDecoration(
+                                decoration: const InputDecoration(
                                   hintText: "Password",
                                   hintStyle: TextStyle(color: Colors.grey),
                                   border: InputBorder.none,
@@ -113,12 +113,12 @@ class _LoginFormState extends State<LoginForm> {
                           ],
                         ),
                       ),
-                      SizedBox(height: 40),
-                      Text(
+                      const SizedBox(height: 40),
+                      const Text(
                         "Forgot password?",
                         style: TextStyle(color: Colors.grey),
                       ),
-                      SizedBox(height: 40),
+                      const SizedBox(height: 40),
                       SizedBox(
                         width: 200,
                         child: ElevatedButton(
@@ -140,7 +140,7 @@ class _LoginFormState extends State<LoginForm> {
                           ),
                         ),
                       ),
-                      SizedBox(height: 20),
+                      const SizedBox(height: 20),
                     ],
                   ),
                 ),
@@ -153,18 +153,33 @@ class _LoginFormState extends State<LoginForm> {
   }
 
   Future<void> login() async {
+    final phone = phoneController.text.trim();
+    final password = passwordController.text.trim();
+
+    if (phone.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please enter both phone number and password"),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     try {
-      final phone = phoneController.text.trim();
-      final password = passwordController.text.trim();
-
       final fakeMail = "$phone@fschool.edu";
-
       await FirebaseAuth.instance
           .signInWithEmailAndPassword(email: fakeMail, password: password);
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Login failed: $e")));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Login Failed: ${e.toString().split(']').last.trim()}"),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
 }
