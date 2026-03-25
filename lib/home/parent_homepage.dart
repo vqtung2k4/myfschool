@@ -1,6 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:myfschool/pages/assignments_page.dart';
+import 'package:myfschool/pages/forms_page.dart';
+import 'package:myfschool/pages/result_page.dart';
+import 'package:myfschool/pages/attendance_page.dart';
+import 'package:myfschool/pages/schedule_page.dart';
 
 class ParentHomepage extends StatefulWidget {
   final String selectedChildId;
@@ -40,7 +45,7 @@ class _ParentHomepageState extends State<ParentHomepage> {
         setState(() {
           parentName = userDoc.data()?['name'] ?? "Parent";
           studentName = studentDoc.data()?['name'] ?? "Unknown Student";
-          classId = studentDoc.data()?['class'] ?? ""; // 🔥 Get classId for notifications
+          classId = studentDoc.data()?['class'] ?? ""; 
           isLoading = false;
         });
       }
@@ -88,10 +93,7 @@ class _ParentHomepageState extends State<ParentHomepage> {
                       ],
                     ),
                   ),
-                  // 🔔 THE NOTIFICATION BELL
-                  if (!isLoading)
-                    _buildNotificationBell(),
-
+                  if (!isLoading) _buildNotificationBell(),
                   IconButton(
                     icon: const Icon(Icons.logout, color: Colors.white),
                     onPressed: () => FirebaseAuth.instance.signOut(),
@@ -114,11 +116,31 @@ class _ParentHomepageState extends State<ParentHomepage> {
                     mainAxisSpacing: 25,
                     crossAxisSpacing: 25,
                     children: [
-                      _buildMenuCard(icon: Icons.check_circle_outline, title: "Attendance", onTap: () {}),
-                      _buildMenuCard(icon: Icons.assignment_outlined, title: "Assignment", onTap: () {}),
-                      _buildMenuCard(icon: Icons.description_outlined, title: "Forms", onTap: () {}),
-                      _buildMenuCard(icon: Icons.poll_outlined, title: "Result", onTap: () {}),
-                      _buildMenuCard(icon: Icons.calendar_today_outlined, title: "Schedule", onTap: () {}),
+                      _buildMenuCard(
+                        icon: Icons.check_circle_outline, 
+                        title: "Attendance", 
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AttendancePage(studentId: widget.selectedChildId))),
+                      ),
+                      _buildMenuCard(
+                        icon: Icons.assignment_outlined, 
+                        title: "Assignment", 
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AssignmentPage(studentId: widget.selectedChildId))),
+                      ),
+                      _buildMenuCard(
+                        icon: Icons.description_outlined, 
+                        title: "Forms", 
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ParentFormMainPage(childId: widget.selectedChildId))),
+                      ),
+                      _buildMenuCard(
+                        icon: Icons.poll_outlined, 
+                        title: "Result", 
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ResultPage(studentId: widget.selectedChildId))),
+                      ),
+                      _buildMenuCard(
+                        icon: Icons.calendar_today_outlined, 
+                        title: "Schedule", 
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SchedulePage(studentId: widget.selectedChildId))),
+                      ),
                     ],
                   ),
                 ),
@@ -130,18 +152,14 @@ class _ParentHomepageState extends State<ParentHomepage> {
     );
   }
 
-  // --- 🔔 Notification Logic ---
   Widget _buildNotificationBell() {
     final uid = FirebaseAuth.instance.currentUser?.uid;
-
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
       builder: (context, userSnapshot) {
-        // 1. Get the last read timestamp
         final userData = userSnapshot.data?.data() as Map<String, dynamic>?;
         Timestamp lastRead = userData?['lastReadNotifications'] ?? Timestamp.fromDate(DateTime(2020));
 
-        // 2. Listen to Assignments newer than lastRead
         return StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
               .collection('assignments')
@@ -149,23 +167,15 @@ class _ParentHomepageState extends State<ParentHomepage> {
               .where('createdAt', isGreaterThan: lastRead)
               .snapshots(),
           builder: (context, assignmentSnap) {
-
-            // 3. Listen to Form Status Updates newer than lastRead
             return StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('forms')
                   .where('childId', isEqualTo: widget.selectedChildId)
                   .where('status', whereIn: ['Accepted', 'Rejected'])
-              // Note: Ensure your form docs have a 'createdDate' or 'updatedDate' field
                   .where('createdDate', isGreaterThan: lastRead)
                   .snapshots(),
               builder: (context, formSnap) {
-
-                // Calculate total unread items
-                int assignmentCount = assignmentSnap.data?.docs.length ?? 0;
-                int formCount = formSnap.data?.docs.length ?? 0;
-                int totalCount = assignmentCount + formCount;
-
+                int totalCount = (assignmentSnap.data?.docs.length ?? 0) + (formSnap.data?.docs.length ?? 0);
                 return Stack(
                   alignment: Alignment.center,
                   children: [
@@ -179,20 +189,9 @@ class _ParentHomepageState extends State<ParentHomepage> {
                         top: 8,
                         child: Container(
                           padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
+                          decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
                           constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-                          child: Text(
-                            totalCount > 9 ? '9+' : '$totalCount',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
+                          child: Text(totalCount > 9 ? '9+' : '$totalCount', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
                         ),
                       ),
                   ],
@@ -212,17 +211,13 @@ class _ParentHomepageState extends State<ParentHomepage> {
       isScrollControlled: true,
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.75,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-        ),
+        decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         child: Column(
           children: [
             const SizedBox(height: 10),
             Container(width: 40, height: 5, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10))),
             const SizedBox(height: 10),
-
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -230,9 +225,7 @@ class _ParentHomepageState extends State<ParentHomepage> {
                 TextButton(
                   onPressed: () async {
                     final uid = FirebaseAuth.instance.currentUser?.uid;
-                    await FirebaseFirestore.instance.collection('users').doc(uid).update({
-                      'lastReadNotifications': FieldValue.serverTimestamp(),
-                    });
+                    await FirebaseFirestore.instance.collection('users').doc(uid).update({'lastReadNotifications': FieldValue.serverTimestamp()});
                     if (mounted) Navigator.pop(context);
                   },
                   child: const Text("Clear All", style: TextStyle(color: Colors.deepOrange)),
@@ -240,24 +233,13 @@ class _ParentHomepageState extends State<ParentHomepage> {
               ],
             ),
             const Divider(),
-
             Expanded(
               child: StreamBuilder<List<QueryDocumentSnapshot>>(
                 stream: _getCombinedNotifications(),
                 builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  
-                  if (snapshot.hasError) {
-                    return Center(child: Text("Error loading updates: ${snapshot.error}"));
-                  }
-
+                  if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
                   final allDocs = snapshot.data ?? [];
-                  if (allDocs.isEmpty) {
-                    return const Center(child: Text("No recent updates found."));
-                  }
-
+                  if (allDocs.isEmpty) return const Center(child: Text("No recent updates found."));
                   return ListView.builder(
                     itemCount: allDocs.length,
                     itemBuilder: (context, index) {
@@ -277,28 +259,13 @@ class _ParentHomepageState extends State<ParentHomepage> {
   }
 
   Stream<List<QueryDocumentSnapshot>> _getCombinedNotifications() {
-    // Note: If you haven't created the composite index yet, this query might fail.
-    // I recommend creating the index using the link in your console.
-    var assignmentStream = FirebaseFirestore.instance
-        .collection('assignments')
-        .where('classId', isEqualTo: classId)
-        .snapshots();
+    var assignmentStream = FirebaseFirestore.instance.collection('assignments').where('classId', isEqualTo: classId).snapshots();
+    var formStream = FirebaseFirestore.instance.collection('forms').where('childId', isEqualTo: widget.selectedChildId).where('status', whereIn: ['Accepted', 'Rejected']).snapshots();
 
-    var formStream = FirebaseFirestore.instance
-        .collection('forms')
-        .where('childId', isEqualTo: widget.selectedChildId)
-        .where('status', whereIn: ['Accepted', 'Rejected'])
-        .snapshots();
-
-    return FirebaseFirestore.instance
-        .collection('assignments')
-        .snapshots() // Dummy trigger
-        .asyncMap((_) async {
+    return FirebaseFirestore.instance.collection('assignments').snapshots().asyncMap((_) async {
       final aSnap = await assignmentStream.first;
       final fSnap = await formStream.first;
-
       List<QueryDocumentSnapshot> combined = [...aSnap.docs, ...fSnap.docs];
-
       combined.sort((a, b) {
         final dataA = a.data() as Map<String, dynamic>;
         final dataB = b.data() as Map<String, dynamic>;
@@ -306,7 +273,6 @@ class _ParentHomepageState extends State<ParentHomepage> {
         Timestamp tB = dataB['createdAt'] ?? dataB['createdDate'] ?? Timestamp.now();
         return tB.compareTo(tA);
       });
-
       return combined;
     });
   }
@@ -320,22 +286,10 @@ class _ParentHomepageState extends State<ParentHomepage> {
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: isAssignment ? Colors.orange : (data['status'] == "Accepted" ? Colors.green : Colors.red),
-          child: Icon(
-            isAssignment ? Icons.assignment : (data['status'] == "Accepted" ? Icons.check : Icons.close),
-            color: Colors.white, size: 18,
-          ),
+          child: Icon(isAssignment ? Icons.assignment : (data['status'] == "Accepted" ? Icons.check : Icons.close), color: Colors.white, size: 18),
         ),
-        title: Text(
-          isAssignment
-              ? "New ${data['subject']} Assignment"
-              : "Request ${data['status']}: ${data['header']}",
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-        ),
-        subtitle: Text(
-          isAssignment ? data['title'] ?? "" : "Note: ${data['teacherNote'] ?? 'No feedback'}",
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
+        title: Text(isAssignment ? "New ${data['subject']} Assignment" : "Request ${data['status']}: ${data['header']}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        subtitle: Text(isAssignment ? data['title'] ?? "" : "Note: ${data['teacherNote'] ?? 'No feedback'}", maxLines: 1, overflow: TextOverflow.ellipsis),
       ),
     );
   }
