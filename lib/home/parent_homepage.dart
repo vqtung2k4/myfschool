@@ -135,41 +135,69 @@ class _ParentHomepageState extends State<ParentHomepage> {
     final uid = FirebaseAuth.instance.currentUser?.uid;
 
     return StreamBuilder<DocumentSnapshot>(
-      // Stream 1: Listen to the user's "lastRead" timestamp
       stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
       builder: (context, userSnapshot) {
-        // Safe access to prevent "field does not exist" error
+        // 1. Get the last read timestamp
         final userData = userSnapshot.data?.data() as Map<String, dynamic>?;
         Timestamp lastRead = userData?['lastReadNotifications'] ?? Timestamp.fromDate(DateTime(2020));
 
+        // 2. Listen to Assignments newer than lastRead
         return StreamBuilder<QuerySnapshot>(
-          // Stream 2: Listen for assignments newer than lastRead
           stream: FirebaseFirestore.instance
               .collection('assignments')
               .where('classId', isEqualTo: classId)
               .where('createdAt', isGreaterThan: lastRead)
               .snapshots(),
-          builder: (context, assignmentSnapshot) {
-            int count = assignmentSnapshot.data?.docs.length ?? 0;
+          builder: (context, assignmentSnap) {
 
-            return Stack(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.notifications, color: Colors.white, size: 28),
-                  onPressed: () => _showNotificationPanel(context),
-                ),
-                if (count > 0)
-                  Positioned(
-                    right: 11,
-                    top: 11,
-                    child: Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(10)),
-                      constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
-                      child: Text('$count', style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+            // 3. Listen to Form Status Updates newer than lastRead
+            return StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('forms')
+                  .where('childId', isEqualTo: widget.selectedChildId)
+                  .where('status', whereIn: ['Accepted', 'Rejected'])
+              // Note: Ensure your form docs have a 'createdDate' or 'updatedDate' field
+                  .where('createdDate', isGreaterThan: lastRead)
+                  .snapshots(),
+              builder: (context, formSnap) {
+
+                // Calculate total unread items
+                int assignmentCount = assignmentSnap.data?.docs.length ?? 0;
+                int formCount = formSnap.data?.docs.length ?? 0;
+                int totalCount = assignmentCount + formCount;
+
+                return Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.notifications, color: Colors.white, size: 28),
+                      onPressed: () => _showNotificationPanel(context),
                     ),
-                  ),
-              ],
+                    if (totalCount > 0)
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                          child: Text(
+                            totalCount > 9 ? '9+' : '$totalCount',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
             );
           },
         );
