@@ -19,7 +19,7 @@ class ParentHomepage extends StatefulWidget {
 class _ParentHomepageState extends State<ParentHomepage> {
   String parentName = "";
   String studentName = "";
-  String classId = ""; // 🔥 Added to track child's class
+  String classId = "";
   bool isLoading = true;
 
   @override
