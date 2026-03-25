@@ -65,7 +65,6 @@ class _ParentHomepageState extends State<ParentHomepage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 20),
-            // 🔥 Updated Header with Bell
             Padding(
               padding: const EdgeInsets.all(20),
               child: Row(
@@ -102,7 +101,6 @@ class _ParentHomepageState extends State<ParentHomepage> {
             ),
 
             const SizedBox(height: 20),
-            // 🔥 Grid Menu remains the same...
             Expanded(
               child: Container(
                 decoration: const BoxDecoration(
@@ -134,36 +132,46 @@ class _ParentHomepageState extends State<ParentHomepage> {
 
   // --- 🔔 Notification Logic ---
   Widget _buildNotificationBell() {
-    return StreamBuilder<QuerySnapshot>(
-      // Listen for assignments created today (or just all for simplicity first)
-      stream: FirebaseFirestore.instance
-          .collection('assignments')
-          .where('classId', isEqualTo: classId)
-          .snapshots(),
-      builder: (context, snapshot) {
-        int count = 0;
-        if (snapshot.hasData) {
-          count = snapshot.data!.docs.length; // You can filter this by date if you want
-        }
+    final uid = FirebaseAuth.instance.currentUser?.uid;
 
-        return Stack(
-          children: [
-            IconButton(
-              icon: const Icon(Icons.notifications, color: Colors.white, size: 28),
-              onPressed: () => _showNotificationPanel(context),
-            ),
-            if (count > 0)
-              Positioned(
-                right: 11,
-                top: 11,
-                child: Container(
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(10)),
-                  constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
-                  child: Text('$count', style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+    return StreamBuilder<DocumentSnapshot>(
+      // Stream 1: Listen to the user's "lastRead" timestamp
+      stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
+      builder: (context, userSnapshot) {
+        // Safe access to prevent "field does not exist" error
+        final userData = userSnapshot.data?.data() as Map<String, dynamic>?;
+        Timestamp lastRead = userData?['lastReadNotifications'] ?? Timestamp.fromDate(DateTime(2020));
+
+        return StreamBuilder<QuerySnapshot>(
+          // Stream 2: Listen for assignments newer than lastRead
+          stream: FirebaseFirestore.instance
+              .collection('assignments')
+              .where('classId', isEqualTo: classId)
+              .where('createdAt', isGreaterThan: lastRead)
+              .snapshots(),
+          builder: (context, assignmentSnapshot) {
+            int count = assignmentSnapshot.data?.docs.length ?? 0;
+
+            return Stack(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.notifications, color: Colors.white, size: 28),
+                  onPressed: () => _showNotificationPanel(context),
                 ),
-              ),
-          ],
+                if (count > 0)
+                  Positioned(
+                    right: 11,
+                    top: 11,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(10)),
+                      constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
+                      child: Text('$count', style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                    ),
+                  ),
+              ],
+            );
+          },
         );
       },
     );
@@ -185,9 +193,25 @@ class _ParentHomepageState extends State<ParentHomepage> {
           children: [
             const SizedBox(height: 10),
             Container(width: 40, height: 5, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10))),
-            const SizedBox(height: 20),
-            const Text("Recent Updates", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const Divider(height: 30),
+            const SizedBox(height: 10),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text("Recent Updates", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                TextButton(
+                  onPressed: () async {
+                    final uid = FirebaseAuth.instance.currentUser?.uid;
+                    await FirebaseFirestore.instance.collection('users').doc(uid).update({
+                      'lastReadNotifications': FieldValue.serverTimestamp(),
+                    });
+                    if (mounted) Navigator.pop(context);
+                  },
+                  child: const Text("Clear All", style: TextStyle(color: Colors.deepOrange)),
+                ),
+              ],
+            ),
+            const Divider(),
 
             Expanded(
               child: StreamBuilder<List<QueryDocumentSnapshot>>(
@@ -196,9 +220,12 @@ class _ParentHomepageState extends State<ParentHomepage> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
+                  
+                  if (snapshot.hasError) {
+                    return Center(child: Text("Error loading updates: ${snapshot.error}"));
+                  }
 
                   final allDocs = snapshot.data ?? [];
-
                   if (allDocs.isEmpty) {
                     return const Center(child: Text("No recent updates found."));
                   }
@@ -208,10 +235,7 @@ class _ParentHomepageState extends State<ParentHomepage> {
                     itemBuilder: (context, index) {
                       final doc = allDocs[index];
                       final data = doc.data() as Map<String, dynamic>;
-
-                      // Determine if it's an Assignment or a Form
                       bool isAssignment = data.containsKey('subject');
-
                       return _buildNotificationItem(isAssignment, data);
                     },
                   );
@@ -224,38 +248,34 @@ class _ParentHomepageState extends State<ParentHomepage> {
     );
   }
 
-// 🔥 Helper to Combine Streams (Assignments + Forms)
   Stream<List<QueryDocumentSnapshot>> _getCombinedNotifications() {
+    // Note: If you haven't created the composite index yet, this query might fail.
+    // I recommend creating the index using the link in your console.
     var assignmentStream = FirebaseFirestore.instance
         .collection('assignments')
         .where('classId', isEqualTo: classId)
-        .orderBy('createdAt', descending: true)
-        .limit(5)
         .snapshots();
 
     var formStream = FirebaseFirestore.instance
         .collection('forms')
         .where('childId', isEqualTo: widget.selectedChildId)
-        .where('status', whereIn: ['Accepted', 'Rejected']) // Only notify on status change
-        .orderBy('createdDate', descending: true)
-        .limit(5)
+        .where('status', whereIn: ['Accepted', 'Rejected'])
         .snapshots();
 
-    // We use Rx.combineLatest from 'rxdart' if you have it,
-    // otherwise we can manually merge them like this:
     return FirebaseFirestore.instance
-        .collection('assignments') // This is a placeholder; logic below combines them
-        .snapshots()
+        .collection('assignments')
+        .snapshots() // Dummy trigger
         .asyncMap((_) async {
       final aSnap = await assignmentStream.first;
       final fSnap = await formStream.first;
 
       List<QueryDocumentSnapshot> combined = [...aSnap.docs, ...fSnap.docs];
 
-      // Sort by date (handle different field names)
       combined.sort((a, b) {
-        Timestamp tA = (a.data() as Map)['createdAt'] ?? (a.data() as Map)['createdDate'];
-        Timestamp tB = (b.data() as Map)['createdAt'] ?? (b.data() as Map)['createdDate'];
+        final dataA = a.data() as Map<String, dynamic>;
+        final dataB = b.data() as Map<String, dynamic>;
+        Timestamp tA = dataA['createdAt'] ?? dataA['createdDate'] ?? Timestamp.now();
+        Timestamp tB = dataB['createdAt'] ?? dataB['createdDate'] ?? Timestamp.now();
         return tB.compareTo(tA);
       });
 
@@ -284,19 +304,12 @@ class _ParentHomepageState extends State<ParentHomepage> {
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
         ),
         subtitle: Text(
-          isAssignment ? data['title'] : "Note: ${data['teacherNote'] ?? 'No feedback'}",
+          isAssignment ? data['title'] ?? "" : "Note: ${data['teacherNote'] ?? 'No feedback'}",
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
       ),
     );
-  }
-
-// Helper to format the Firebase Timestamp
-  String _formatTimestamp(dynamic timestamp) {
-    if (timestamp == null) return "Just now";
-    DateTime date = (timestamp as Timestamp).toDate();
-    return "${date.day}/${date.month} ${date.hour}:${date.minute.toString().padLeft(2, '0')}";
   }
 
   Widget _buildMenuCard({required IconData icon, required String title, required VoidCallback onTap}) {
