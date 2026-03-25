@@ -1,6 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:myfschool/pages/assignments_page.dart';
+import 'package:myfschool/pages/attendance_page.dart';
+import 'package:myfschool/pages/forms_page.dart';
+import 'package:myfschool/pages/result_page.dart';
+import 'package:myfschool/pages/schedule_page.dart';
 
 class ParentHomepage extends StatefulWidget {
   final String selectedChildId;
@@ -114,11 +119,21 @@ class _ParentHomepageState extends State<ParentHomepage> {
                     mainAxisSpacing: 25,
                     crossAxisSpacing: 25,
                     children: [
-                      _buildMenuCard(icon: Icons.check_circle_outline, title: "Attendance", onTap: () {}),
-                      _buildMenuCard(icon: Icons.assignment_outlined, title: "Assignment", onTap: () {}),
-                      _buildMenuCard(icon: Icons.description_outlined, title: "Forms", onTap: () {}),
-                      _buildMenuCard(icon: Icons.poll_outlined, title: "Result", onTap: () {}),
-                      _buildMenuCard(icon: Icons.calendar_today_outlined, title: "Schedule", onTap: () {}),
+                      _buildMenuCard(icon: Icons.check_circle_outline, title: "Attendance", onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => AttendancePage(studentId: widget.selectedChildId)));
+                      }),
+                      _buildMenuCard(icon: Icons.assignment_outlined, title: "Assignment", onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => AssignmentPage(studentId: widget.selectedChildId)));
+                      }),
+                      _buildMenuCard(icon: Icons.description_outlined, title: "Forms", onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => ParentFormMainPage(childId: widget.selectedChildId)));
+                      }),
+                      _buildMenuCard(icon: Icons.poll_outlined, title: "Result", onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => ResultPage(studentId: widget.selectedChildId)));
+                      }),
+                      _buildMenuCard(icon: Icons.calendar_today_outlined, title: "Schedule", onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => SchedulePage(studentId: widget.selectedChildId)));
+                      }),
                     ],
                   ),
                 ),
