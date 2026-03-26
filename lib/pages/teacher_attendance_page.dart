@@ -128,8 +128,15 @@ class _TeacherAttendancePageState extends State<TeacherAttendancePage> {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                // --- NEW: Local Filtering Logic ---
                 final allStudents = snapshot.data!.docs;
+                
+                // Initialize attendance map for all students in the class
+                // Set default to true (attended)
+                for (var doc in allStudents) {
+                  attendance.putIfAbsent(doc.id, () => true);
+                }
+
+                // --- NEW: Local Filtering Logic ---
                 final filteredStudents = allStudents.where((doc) {
                   final name = doc['name'].toString().toLowerCase();
                   return name.contains(_searchQuery);
@@ -148,13 +155,11 @@ class _TeacherAttendancePageState extends State<TeacherAttendancePage> {
                     final studentId = student.id;
                     final name = student['name'];
 
-                    attendance.putIfAbsent(studentId, () => false);
-
                     return CheckboxListTile(
                       title: Text(name,
                           style: const TextStyle(fontWeight: FontWeight.w500)),
                       activeColor: Colors.orange[800],
-                      value: attendance[studentId],
+                      value: attendance[studentId] ?? true,
                       onChanged: (value) {
                         setState(() {
                           attendance[studentId] = value!;
