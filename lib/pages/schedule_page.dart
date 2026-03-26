@@ -41,7 +41,7 @@ class _SchedulePageState extends State<SchedulePage> {
 
       DocumentSnapshot? targetWeek;
       for (var doc in weeksQuery.docs) {
-        final data = doc.data() as Map<String, dynamic>;
+        final data = doc.data();
         final startDateTimestamp = data['startDate'] as Timestamp?;
         if (startDateTimestamp != null) {
           final start = _normalize(startDateTimestamp.toDate());
