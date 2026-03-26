@@ -90,7 +90,7 @@ class _TeacherScoreEntryPageState extends State<TeacherScoreEntryPage> {
                   if (!snapshot.hasData) return const LinearProgressIndicator();
                   var students = snapshot.data!.docs;
                   return DropdownButtonFormField<String>(
-                    value: _selectedStudentId,
+                    initialValue: _selectedStudentId,
                     hint: const Text("Choose a student"),
                     items: students.map((s) => DropdownMenuItem(
                         value: s.id,
@@ -114,7 +114,7 @@ class _TeacherScoreEntryPageState extends State<TeacherScoreEntryPage> {
                   if (!snapshot.hasData) return const LinearProgressIndicator();
                   var subjects = snapshot.data!.docs.map((doc) => doc.id).toList();
                   return DropdownButtonFormField<String>(
-                    value: _selectedSubject,
+                    initialValue: _selectedSubject,
                     hint: const Text("Choose subject"),
                     items: subjects.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
                     onChanged: (val) => setState(() => _selectedSubject = val),
@@ -128,7 +128,7 @@ class _TeacherScoreEntryPageState extends State<TeacherScoreEntryPage> {
               // 3. Select Test Type
               _buildLabel("3. Test Category"),
               DropdownButtonFormField<String>(
-                value: _selectedTestType,
+                initialValue: _selectedTestType,
                 hint: const Text("Select test type"),
                 items: _testTypes.entries.map((e) => DropdownMenuItem(
                     value: e.key,

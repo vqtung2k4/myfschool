@@ -83,7 +83,7 @@ class _CreateAssignmentPageState extends State<CreateAssignmentPage> {
                     ),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
-                      value: _selectedClass,
+                      initialValue: _selectedClass,
                       hint: const Text("No class assigned"),
                       decoration: _dropdownStyle(),
                       // Only provide the teacher's assigned class as an option
@@ -193,7 +193,7 @@ class _CreateAssignmentPageState extends State<CreateAssignmentPage> {
     Function(String?) onChanged,
   ) {
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       hint: Text(hint),
       decoration: InputDecoration(
         filled: true,
