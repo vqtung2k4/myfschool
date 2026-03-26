@@ -43,9 +43,38 @@ class _RoleCheckerState extends State<RoleChecker> {
           );
         }
 
+        // If the document doesn't exist, the user exists in Auth but not in Firestore users collection
         if (!snapshot.hasData || !snapshot.data!.exists) {
-          return const Scaffold(
-            body: Center(child: Text("User profile not found in database.")),
+          return Scaffold(
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.person_off, size: 80, color: Colors.orange),
+                    const SizedBox(height: 20),
+                    const Text(
+                      "User profile not found in database.",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      "UID: ${user.uid}\nPhone: ${user.phoneNumber}",
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 30),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.orange[900]),
+                      onPressed: () => FirebaseAuth.instance.signOut(),
+                      child: const Text("Log Out & Try Another Account", style: TextStyle(color: Colors.white)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           );
         }
 

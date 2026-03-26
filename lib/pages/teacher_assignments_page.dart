@@ -22,13 +22,6 @@ class _CreateAssignmentPageState extends State<CreateAssignmentPage> {
   bool _isSaving = false;
   bool _isLoadingClass = true;
 
-  final List<String> _subjects = [
-    "Japanese",
-    "Mathematics",
-    "Science",
-    "English",
-    "Art",
-  ];
 
   @override
   void initState() {
