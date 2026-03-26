@@ -1,6 +1,6 @@
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:myfschool/pages/forgot_password.dart';
 
 class LoginForm extends StatefulWidget {
   const LoginForm({super.key});
@@ -13,6 +13,7 @@ class _LoginFormState extends State<LoginForm> {
   final phoneController = TextEditingController();
   final passwordController = TextEditingController();
 
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
@@ -86,6 +87,7 @@ class _LoginFormState extends State<LoginForm> {
                               ),
                               child: TextField(
                                 controller: phoneController,
+                                keyboardType: TextInputType.phone,
                                 decoration: const InputDecoration(
                                   hintText: "Phonenumber",
                                   hintStyle: TextStyle(color: Colors.grey),
@@ -114,11 +116,22 @@ class _LoginFormState extends State<LoginForm> {
                         ),
                       ),
                       const SizedBox(height: 40),
-                      const Text(
-                        "Forgot password?",
-                        style: TextStyle(color: Colors.grey),
+                      
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const ForgotPasswordPage()),
+                          );
+                        },
+                        child: const Text(
+                          "Forgot password?",
+                          style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
+                        ),
                       ),
+                      
                       const SizedBox(height: 40),
+                      
                       SizedBox(
                         width: 200,
                         child: ElevatedButton(
@@ -157,29 +170,26 @@ class _LoginFormState extends State<LoginForm> {
     final password = passwordController.text.trim();
 
     if (phone.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please enter both phone number and password"),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _showError("Please enter both phone number and password");
       return;
     }
 
     try {
       final fakeMail = "$phone@fschool.edu";
-      await FirebaseAuth.instance
-          .signInWithEmailAndPassword(email: fakeMail, password: password);
+      await FirebaseAuth.instance.signInWithEmailAndPassword(email: fakeMail, password: password);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Login Failed: ${e.toString().split(']').last.trim()}"),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
+      _showError("Login Failed: ${e.toString().split(']').last.trim()}");
     }
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 }
