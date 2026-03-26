@@ -14,17 +14,16 @@ class ForgotPasswordPage extends StatefulWidget {
 }
 
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
-  final _identifierController = TextEditingController(); // Handles both Phone or Recovery Email
+  final _identifierController = TextEditingController(); 
   final _otpController = TextEditingController();
   final _newPasswordController = TextEditingController();
   
   ResetMethod _selectedMethod = ResetMethod.phone;
   String? _verificationId;
-  String? _generatedEmailOTP; // 🔥 Stores the OTP we sent via EmailJS
+  String? _generatedEmailOTP; 
   bool _isLoading = false;
   bool _otpSent = false;
 
-  // --- Logic to Send Code ---
   Future<void> _sendCode() async {
     String input = _identifierController.text.trim();
     if (input.isEmpty) return;
@@ -32,11 +31,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     setState(() => _isLoading = true);
 
     if (_selectedMethod == ResetMethod.phone) {
-      // 📱 PHONE LOGIC (OTP)
       String phone = input.startsWith('0') ? "+84${input.substring(1)}" : "+84$input";
       await _sendPhoneOTP(phone);
     } else {
-      // 📧 EMAIL OTP LOGIC
       await _sendEmailOTP(input);
     }
   }
@@ -61,66 +58,60 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     );
   }
 
-  // --- NEW: Send Email OTP via EmailJS ---
+  // --- Send Email OTP via EmailJS ---
   Future<void> _sendEmailOTP(String recoveryEmail) async {
+    setState(() => _isLoading = true);
     try {
-      // 1. Search for the user document by the 'recoveryMail' field (matches your Firestore)
       final userQuery = await FirebaseFirestore.instance
           .collection('users')
-          .where('recoveryMail', isEqualTo: recoveryEmail)
+          .where('recoveryMail', isEqualTo: recoveryEmail.trim())
           .get();
 
       if (userQuery.docs.isEmpty) {
-        throw "No user found with the recovery email: $recoveryEmail";
+        throw "User not found with recovery email: $recoveryEmail";
       }
 
       final userData = userQuery.docs.first.data();
-      String? actualMail = userData['recoveryMail'];
+      final actualMail = (userData['recoveryMail'] as String).trim();
 
-      if (actualMail == null || actualMail.isEmpty) {
-        throw "No recovery email found for this user.";
-      }
+      final otp = (100000 + Random().nextInt(900000)).toString();
+      _generatedEmailOTP = otp;
 
-      // 2. Generate the 6-digit OTP
-      _generatedEmailOTP = (100000 + Random().nextInt(900000)).toString();
+      debugPrint("EmailJS: Sending OTP to $actualMail");
 
-      // 3. Send via EmailJS
-      // Using explicit options in the send method to be 100% sure the public key is passed.
-      await emailjs.EmailJS.send(
-        'service_ps8g8nc',
-        'template_6f9f6e9',
+      final response = await emailjs.send(
+        'service_06q7mbg',
+        'template_hemjvl3',
         {
           'email': actualMail,
-          'otp_code': _generatedEmailOTP,
+          'otp_code': otp,
         },
         const emailjs.Options(
-          publicKey: 'ZO5JWdYOXyOMe8obX', 
+          publicKey: 'ZO5JWdYOXyOMe8obX',
         ),
       );
+
+      debugPrint("EmailJS Status: ${response.status} - ${response.text}");
 
       setState(() {
         _otpSent = true;
         _isLoading = false;
       });
 
-      // Mask the email for privacy (e.g., v***5@gmail.com)
-      String maskedEmail = actualMail;
-      if (actualMail.contains('@')) {
-        var parts = actualMail.split('@');
-        if (parts[0].length > 2) {
-          maskedEmail = "${parts[0][0]}***${parts[0].characters.last}@${parts[1]}";
-        }
-      }
-      _showSnackBar("OTP sent to: $maskedEmail");
+      _showSnackBar("OTP sent successfully to $actualMail");
 
     } catch (e) {
       setState(() => _isLoading = false);
-      debugPrint("EmailJS Error detail: $e");
-      _showSnackBar("Error: Email service issue. Please try again later.");
+      debugPrint("EmailJS Error: $e");
+
+      String message = "Failed to send OTP.";
+      if (e.toString().contains("400")) {
+        message = "Error 400: Please check EmailJS Security (UNCHECK 'Use Private Key').";
+      }
+      _showSnackBar(message);
     }
   }
 
-  // --- Final Reset Logic (Combined for Phone and Email) ---
   Future<void> _handlePasswordReset() async {
     if (_selectedMethod == ResetMethod.phone) {
       await _resetPasswordWithPhoneOTP();
@@ -132,10 +123,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   Future<void> _resetPasswordWithPhoneOTP() async {
     final smsCode = _otpController.text.trim();
     final newPassword = _newPasswordController.text.trim();
-    final rawPhone = _identifierController.text.trim();
 
     if (smsCode.isEmpty || newPassword.isEmpty || _verificationId == null) return;
-
     setState(() => _isLoading = true);
 
     try {
@@ -149,25 +138,11 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
       if (user != null) {
         await user.updatePassword(newPassword);
-        String fakeEmail = "$rawPhone@fschool.edu";
-
-        if (user.email != fakeEmail) {
-          try {
-            AuthCredential emailCred = EmailAuthProvider.credential(
-              email: fakeEmail,
-              password: newPassword,
-            );
-            await user.linkWithCredential(emailCred);
-          } catch (e) {
-            debugPrint("Email association skipped: $e");
-          }
-        }
       }
-
       await FirebaseAuth.instance.signOut();
 
       if (mounted) {
-        _showSnackBar("Success! Password updated. Please login with your new password.");
+        _showSnackBar("Success! Password updated.");
         Navigator.pop(context);
       }
     } catch (e) {
@@ -177,25 +152,12 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   }
 
   Future<void> _resetPasswordWithEmailOTP() async {
-    final enteredOtp = _otpController.text.trim();
-
-    if (enteredOtp != _generatedEmailOTP) {
+    if (_otpController.text.trim() != _generatedEmailOTP) {
       _showSnackBar("Invalid Email OTP code.");
       return;
     }
-
-    setState(() => _isLoading = true);
-
-    try {
-      // NOTE: Password update via Email OTP is currently a verification placeholder.
-      _showSnackBar("Email OTP Verified! (Password update requires backend integration)");
-      
-      setState(() => _isLoading = false);
-      if (mounted) Navigator.pop(context);
-    } catch (e) {
-      setState(() => _isLoading = false);
-      _showSnackBar("Reset failed: $e");
-    }
+    _showSnackBar("Email OTP Verified! (Implement password update here)");
+    Navigator.pop(context);
   }
 
   void _showSnackBar(String message) {
@@ -251,9 +213,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           Text(
             _otpSent 
               ? "Enter the OTP and your new password." 
-              : (_selectedMethod == ResetMethod.phone 
-                  ? "Enter your phone number to receive an OTP." 
-                  : "Enter your recovery email to receive an Email OTP."),
+              : "Choose how you want to reset your password.",
             style: const TextStyle(color: Colors.white70),
           ),
         ],
@@ -268,16 +228,12 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         ChoiceChip(
           label: const Text("Phone OTP"),
           selected: _selectedMethod == ResetMethod.phone,
-          selectedColor: Colors.orange[900],
-          labelStyle: TextStyle(color: _selectedMethod == ResetMethod.phone ? Colors.white : Colors.black),
           onSelected: (val) => setState(() => _selectedMethod = ResetMethod.phone),
         ),
         const SizedBox(width: 10),
         ChoiceChip(
           label: const Text("Email OTP"),
           selected: _selectedMethod == ResetMethod.email,
-          selectedColor: Colors.orange[900],
-          labelStyle: TextStyle(color: _selectedMethod == ResetMethod.email ? Colors.white : Colors.black),
           onSelected: (val) => setState(() => _selectedMethod = ResetMethod.email),
         ),
       ],
